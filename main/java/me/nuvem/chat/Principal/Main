@@ -1,0 +1,365 @@
+package me.nuvem.chat.Principal;
+
+import java.util.Arrays;
+import java.util.List;
+
+import me.nuvem.chat.Eventos.ChatEvento;
+import me.nuvem.chat.Files.FileCustom;
+
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
+/*
+ * @ Criado por NuvemDev - 2014
+ * @ Todos os direitos reservados
+ * @ É proibido realizar qualquer tipo de troca comercial 
+ * (que envolva dinheiro, bens materiais ou qualquer outro tipo de moeda de troca) por este plugin
+ * @ Seu uso é livre por qualquer servidor
+ * @ É proibido disponibilizar o download deste plugin em fóruns, sites, redes sociais ou qualquer outro meio de comunicação 
+ * @ Só é permitido modificar para uso próprio
+ * @ Dúvidas, sugestões, acesse o site:
+ * 
+ */
+
+public class Main extends JavaPlugin{
+	
+	//Dados do Plugin
+	private double versao = 1;
+	private double melhorias = .0;
+	private double bugs = .00;
+	
+	public static Main plugin;
+	
+	public FileCustom file = new FileCustom(this);
+	
+	public ChatOperador chat = new ChatOperador(this, file);
+	
+	
+	@Override
+	public void onEnable() {
+		plugin = this;
+		
+		loadTermos();
+		loadConfig();
+		loadPalavras();
+		loadWarns();
+		
+		chat.serverVerifWarn();
+		chat.defineDados();
+		
+		PluginManager manager = this.getServer().getPluginManager();
+		manager.registerEvents(new ChatEvento(this, file, chat), this);
+		
+		//Verificando versão do programa
+		if(file.getTermosConfig().getDouble("Versao do Programa") == versao + melhorias + bugs){
+			
+			//Verificando Termos
+			if(file.getTermosConfig().getBoolean("Eu aceito os Termos de Uso") == true){
+				
+				getLogger().info("Os Termos de Uso foram aceitos! O plugin foi iniciado com sucesso!");
+				getLogger().info("Criado por NuvemDev 2014");
+				
+			} else {
+				
+				plugin.getServer().getPluginManager().disablePlugin(plugin);
+				
+				getLogger().info("Os Termos de Uso nao foram aceitos! O plugin foi desativado!");
+			}
+			
+		} else {
+			
+			file.getTermosConfig().set("Versao do Programa", versao + melhorias + bugs);
+			file.getTermosConfig().set("Eu aceito os Termos de Uso", false);
+			file.saveTermosConfig();
+			
+			plugin.getServer().getPluginManager().disablePlugin(plugin);
+			
+			getLogger().info("Parece que a versao do plugin mudou! Veja os termos novamente!");
+		}
+	}
+	
+	@Override
+	public void onDisable() {
+		
+	}
+	
+	@Override
+	public boolean onCommand(CommandSender sender, Command command,
+			String label, String[] args) {
+		
+		if(label.equalsIgnoreCase("chat")){
+			
+			if(sender.isOp()){
+				
+				//# Nenhum Argumento
+				if(args.length == 0){
+					
+					String texto = "&f&l&m<[]>      <>&r&3&l Chat Protect Nuvem &f&l&m<>      <[]>"
+					+ "\n" 
+					+ "\n"
+					+ "&c/chat &f- Mostra essa pagina\n"
+					+ "&c/chat list (N|B) &f - Acesse todas as palavras das listas\n"
+					+ "&c/chat add (N|B) <Palavra> &f - Adicione uma palavra\n"
+					+ "&c/chat delet (N|B) <Palavra> &f - Delete uma palavra";
+					
+					sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+				}
+				
+				//# Dois Argumentos
+				if(args.length == 2){
+					
+					if(args[0].equalsIgnoreCase("list")){
+						
+						if(args[1].equalsIgnoreCase("N")){
+							
+							String texto = "&3&l<ChatProtect> &r&fLista Negra";
+							
+							sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+							
+							List<String> list = file.getPalavrasConfig().getStringList("Lista Negra");
+							
+							for(String palavra: list){
+								
+								sender.sendMessage("- " + palavra);
+							}
+							
+						}
+						
+						if(args[1].equalsIgnoreCase("B")){
+							
+							String texto = "&3&l<ChatProtect> &r&fLista Branca";
+							
+							sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+							
+							List<String> list = file.getPalavrasConfig().getStringList("Lista Branca");
+							
+							for(String palavra: list){
+								
+								sender.sendMessage("- " + palavra);
+							}
+							
+						}
+						
+					}
+					
+				}
+				
+				//# Três Argumentos
+				if(args.length == 3){
+					
+					if(args[0].equalsIgnoreCase("add")){
+						
+						if(args[1].equalsIgnoreCase("N")){
+							
+							List<String> list = file.getPalavrasConfig().getStringList("Lista Negra");
+							
+							if(!list.toString().toLowerCase().contains(args[2].toLowerCase())){
+								
+								list.add(args[2]);
+								file.getPalavrasConfig().set("Lista Negra", list);
+								file.savePalavrasConfig();
+								
+								String texto = "&3&l<ChatProtect> &r&fPalavra adicionada com sucesso\n"
+								+ "&c[&lN&r&c] &7" + args[2];
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+								
+								chat.defineDados();
+							
+							} else {
+								
+								String texto = "&3&l<ChatProtect> &r&fEssa palavra ja esta na lista";
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+							}
+							
+						}
+						
+						if(args[1].equalsIgnoreCase("B")){
+							
+							List<String> list = file.getPalavrasConfig().getStringList("Lista Branca");
+							
+							if(!list.toString().toLowerCase().contains(args[2].toLowerCase())){
+								
+								list.add(args[2]);
+								file.getPalavrasConfig().set("Lista Branca", list);
+								file.savePalavrasConfig();
+								
+								String texto = "&3&l<ChatProtect> &r&fPalavra adicionada com sucesso\n"
+								+ "&a[&lB&r&a] &7" + args[2];
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+								
+								chat.defineDados();
+							
+							} else {
+								
+								String texto = "&3&l<ChatProtect> &r&fEssa palavra ja esta na lista";
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+							}
+							
+						}
+						
+					}
+					
+					if(args[0].equalsIgnoreCase("delet")){
+						
+						if(args[1].equalsIgnoreCase("N")){
+							
+							List<String> list = file.getPalavrasConfig().getStringList("Lista Negra");
+							
+							if(list.toString().toLowerCase().contains(args[2].toLowerCase())){
+								
+								list.remove(args[2].toLowerCase());
+								file.getPalavrasConfig().set("Lista Negra", list);
+								file.savePalavrasConfig();
+								
+								String texto = "&3&l<ChatProtect> &r&fPalavra removida com sucesso\n"
+								+ "&c[&lN&r&c] &7" + args[2];
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+								
+								chat.defineDados();
+							
+							} else {
+								
+								String texto = "&3&l<ChatProtect> &r&fEssa palavra nao esta na lista";
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+							}
+							
+						}
+						
+						if(args[1].equalsIgnoreCase("B")){
+							
+							List<String> list = file.getPalavrasConfig().getStringList("Lista Branca");
+							
+							if(list.toString().toLowerCase().contains(args[2].toLowerCase())){
+								
+								list.remove(args[2].toLowerCase());
+								file.getPalavrasConfig().set("Lista Branca", list);
+								file.savePalavrasConfig();
+								
+								String texto = "&3&l<ChatProtect> &r&fPalavra removida com sucesso\n"
+								+ "&a[&lB&r&a] &7" + args[2];
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+								
+								chat.defineDados();
+							
+							} else {
+								
+								String texto = "&3&l<ChatProtect> &r&fEssa palavra nao esta na lista";
+								
+								sender.sendMessage(ChatColor.translateAlternateColorCodes('&', texto));
+							}
+							
+						}
+						
+					}
+					
+				}
+				
+			} else {
+				
+				sender.sendMessage(ChatColor.RED + "Voce nao tem permissao para usar esse comando.");
+			}
+			
+		}
+		
+		return false;
+		
+	}
+	
+	//Carregar Termos
+	public void loadTermos(){
+		
+		String path = "Eu aceito os Termos de Uso";
+		file.getTermosConfig().addDefault(path, false);
+		
+		String path1 = "Versao do Programa";
+		file.getTermosConfig().addDefault(path1, versao + melhorias + bugs);
+
+		
+		file.getTermosConfig().options().copyDefaults(true);
+		file.saveTermosConfig();
+	}
+	
+	//Carregar Config
+	public void loadConfig(){
+		
+		String path = "Warn.Punicao.Tempo de Bloqueio do Chat";
+		getConfig().addDefault(path, 10);
+		
+		String pathA = "Warn.Punicao.10 Warns.kick";
+		getConfig().addDefault(pathA, true);
+		String pathA1 = "Warn.Punicao.10 Warns.ban";
+		getConfig().addDefault(pathA1, false);
+		String pathA2 = "Warn.Punicao.10 Warns.tempo";
+		getConfig().addDefault(pathA2, 0);
+		
+		String pathB = "Warn.Punicao.20 Warns.kick";
+		getConfig().addDefault(pathB, true);
+		String pathB1 = "Warn.Punicao.20 Warns.ban";
+		getConfig().addDefault(pathB1, true);
+		String pathB2 = "Warn.Punicao.20 Warns.tempo";
+		getConfig().addDefault(pathB2, 15);
+		
+		String pathC = "Warn.Punicao.30 Warns.kick";
+		getConfig().addDefault(pathC, true);
+		String pathC1 = "Warn.Punicao.30 Warns.ban";
+		getConfig().addDefault(pathC1, true);
+		String pathC2 = "Warn.Punicao.30 Warns.tempo";
+		getConfig().addDefault(pathC2, 30);
+		
+		String pathD = "Warn.Punicao.40 Warns.kick";
+		getConfig().addDefault(pathD, true);
+		String pathD1 = "Warn.Punicao.40 Warns.ban";
+		getConfig().addDefault(pathD1, true);
+		String pathD2 = "Warn.Punicao.40 Warns.tempo";
+		getConfig().addDefault(pathD2, 60);
+		
+		String pathE = "Warn.Punicao.50 Warns.kick";
+		getConfig().addDefault(pathE, true);
+		String pathE1 = "Warn.Punicao.50 Warns.ban";
+		getConfig().addDefault(pathE1, true);
+		String pathE2 = "Warn.Punicao.50 Warns.tempo";
+		getConfig().addDefault(pathE2, 120);
+		
+		String pathF = "Warn.Punicao.Mais de 50 Warns.kick";
+		getConfig().addDefault(pathF, true);
+		String pathF1 = "Warn.Punicao.Mais de 50 Warns.ban";
+		getConfig().addDefault(pathF1, true);
+		String pathF2 = "Warn.Punicao.Mais de 50 Warns.tempo";
+		getConfig().addDefault(pathF2, 60);
+		
+		getConfig().options().copyDefaults(true);
+		saveConfig();
+	}
+	
+	//Carregar Warns
+	public void loadWarns(){
+		
+		file.getWarnConfig().options().copyDefaults(true);
+		file.saveWarnConfig();
+	}
+	
+	//Carregar Palavras
+	public void loadPalavras(){
+		String[] list = {};
+		String path = "Lista Negra";
+		file.getPalavrasConfig().addDefault(path, Arrays.asList(list));
+		
+		String[] list1 = {};
+		String path1 = "Lista Branca";
+		file.getPalavrasConfig().addDefault(path1, Arrays.asList(list1));
+		
+		file.getPalavrasConfig().options().copyDefaults(true);
+		file.savePalavrasConfig();
+	}
+
+}
